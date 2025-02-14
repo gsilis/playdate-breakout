@@ -7,7 +7,7 @@ local sprite = graphics.sprite
 class('GameWinScreen').extends(sprite)
 
 function GameWinScreen:init(setState)
-  GameWinScreen.super.init(self, setState)
+  GameWinScreen.super:init(setState)
 end
 
 function GameWinScreen:AButtonUp()

@@ -7,13 +7,14 @@ import 'sprites/block'
 
 class('GameScreen').extends(Screen)
 
+local graphics = playdate.graphics
+local sprite = graphics.sprite
+local image = graphics.image
+
 local WIDTH = 400
 local HALF_WIDTH = WIDTH / 2
 local HEIGHT = 240
 local HALF_HEIGHT = HEIGHT / 2
-local graphics = playdate.graphics
-local sprite = graphics.sprite
-local image = graphics.image
 local initialPaddleWidth = 32
 local initialPaddlePosition = HALF_WIDTH
 local paddleY = HEIGHT - 30
@@ -50,12 +51,46 @@ function respondWithOverlap()
   return sprite.kCollisionTypeOverlap
 end
 
+local paddleDirectionStatic = 'static'
+local paddleDirectionLeft = 'left'
+local paddleDirectionRight = 'right'
+
+function staticFunction(speed)
+  return speed
+end
+
+function leftFunction(speed)
+  -- if the speed is less than 0, add spin. Otherwise remove spin
+  if speed < 0 then
+    return -6
+  else
+    return 4
+  end
+end
+
+function rightFunction(speed)
+  -- if the speed is more than 0 add spin. Otherwise remove spin
+  if speed > 0 then
+    return 6
+  else
+    return -4
+  end
+end
+
+local speedFunctions = {
+  static = staticFunction,
+  left = leftFunction,
+  right = rightFunction
+}
+
 function GameScreen:init(setState)
   GameScreen.super:init(setState)
 
   self.playing = true
   self.moving = false
+  self.paddleDirection = paddleDirectionStatic
   self.paddle = Paddle(paddlePosition, paddleY)
+  self.lastPaddlePosition = paddleY
   self.ball = Ball(initialBallX, initialBallY, 0, 0, self)
 
   self.top = sprite.new()
@@ -135,6 +170,7 @@ function GameScreen:pause()
 end
 
 function GameScreen:reset()
+  self.score = 0
   paddlePosition = initialPaddlePosition
   paddleWidth = initialPaddleWidth
 
@@ -147,11 +183,25 @@ end
 function GameScreen:draw()
   self.ball:tick()
 
+  local paddlex, _ = self.paddle:getPosition()
+
+  if paddlex == self.lastPaddlePosition then
+    self.paddleDirection = paddleDirectionStatic
+  end
+
   if self.playing == false then
     graphics.setColor(WHITE)
     graphics.fillRect(HALF_WIDTH - 80, HEIGHT - 30, 200, 30)
     font:drawTextAligned('Press A for new game', HALF_WIDTH - 70, HEIGHT - 20, 100, 30, LEFT)
   end
+
+  self.lastPaddlePosition = paddlex
+end
+
+function GameScreen:getNewSpeed(speed)
+  local fn = speedFunctions[self.paddleDirection]
+
+  return fn(speed)
 end
 
 function GameScreen:createPoints()
@@ -190,12 +240,21 @@ function GameScreen:cranked(_, accelerated)
     return
   end
 
+  local oldPosition = paddlePosition
   paddlePosition = paddlePosition + accelerated
 
   if paddlePosition < xMin then
     paddlePosition = xMin
   elseif paddlePosition > xMax then
     paddlePosition = xMax
+  end
+
+  if oldPosition < paddlePosition then
+    self.paddleDirection = paddleDirectionRight
+  elseif oldPosition > paddlePosition then
+    self.paddleDirection = paddleDirectionLeft
+  else
+    self.paddleDirection = paddleDirectionStatic
   end
 
   if self.moving == false then

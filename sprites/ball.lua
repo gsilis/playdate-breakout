@@ -31,8 +31,14 @@ function Ball:tick()
     local other = collision.other
     local name = other.name
 
-    if name == 'BLOCK' then
-      self.scene:scorePoint(other)
+    if name == 'BLOCK' or name == 'PADDLE' then
+      if name == 'BLOCK' then
+        self.scene:scorePoint(other)
+      end
+
+      if name == 'PADDLE' then
+        self.speedX = self.scene:getNewSpeed(self.speedX)
+      end
       
       if goalx ~= actualx then
         self.speedX = self.speedX * -1
@@ -41,8 +47,6 @@ function Ball:tick()
       if goaly ~= actualy then
         self.speedY = self.speedY * -1
       end
-    elseif name == 'PADDLE' then
-      self.speedY = self.speedY * -1
     elseif name == 'LEFT' then
       self.speedX = self.speedX * -1
     elseif name == 'RIGHT' then

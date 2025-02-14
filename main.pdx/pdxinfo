@@ -1,0 +1,9 @@
+name=Breakout
+author=Girts Silis
+description=Learning how to make a game for Playdate
+bundleId=com.girtssilis.breakout
+version=1.0
+buildNumber=1
+imagewPath=assets/
+pdxversion=20601
+buildtime=792809693

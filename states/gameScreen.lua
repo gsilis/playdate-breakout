@@ -1,7 +1,8 @@
 import 'CoreLibs/object'
 import 'CoreLibs/sprites'
 import 'states/screen'
-import 'sprites/paddle'
+import 'sprites/improved-paddle'
+import 'sprites/improved-ball'
 import 'sprites/ball'
 import 'sprites/block'
 
@@ -15,15 +16,10 @@ local WIDTH = 400
 local HALF_WIDTH = WIDTH / 2
 local HEIGHT = 240
 local HALF_HEIGHT = HEIGHT / 2
-local initialPaddleWidth = 32
 local initialPaddlePosition = HALF_WIDTH
 local paddleY = HEIGHT - 30
-local BLACK = graphics.kColorBlack
 local WHITE = graphics.kColorWhite
 local ballRadius = 6
-local ballDiameter = ballRadius * 2
-local initialBallY = paddleY
-local initialBallX = initialPaddlePosition
 local rows = 8
 local columns = 23
 local columnOffset = 16
@@ -37,8 +33,6 @@ local LEFT = kTextAlignment.left
 
 -- Variables used for drawing
 local paddlePosition = initialPaddlePosition
-local paddleWidth = initialPaddleWidth
-local paddleHeight = 10
 local speedX = initialSpeedX
 local speedY = initialSpeedY
 local background = image.new('assets/background')
@@ -51,47 +45,13 @@ function respondWithOverlap()
   return sprite.kCollisionTypeOverlap
 end
 
-local paddleDirectionStatic = 'static'
-local paddleDirectionLeft = 'left'
-local paddleDirectionRight = 'right'
-
-function staticFunction(speed)
-  return speed
-end
-
-function leftFunction(speed)
-  -- if the speed is less than 0, add spin. Otherwise remove spin
-  if speed < 0 then
-    return -6
-  else
-    return 4
-  end
-end
-
-function rightFunction(speed)
-  -- if the speed is more than 0 add spin. Otherwise remove spin
-  if speed > 0 then
-    return 6
-  else
-    return -4
-  end
-end
-
-local speedFunctions = {
-  static = staticFunction,
-  left = leftFunction,
-  right = rightFunction
-}
-
 function GameScreen:init(setState)
   GameScreen.super:init(setState)
 
   self.playing = true
   self.moving = false
-  self.paddleDirection = paddleDirectionStatic
-  self.paddle = Paddle(paddlePosition, paddleY)
-  self.lastPaddlePosition = paddleY
-  self.ball = Ball(initialBallX, initialBallY, 0, 0, self)
+  self.paddle = ImprovedPaddle(paddlePosition, paddleY)
+  self.ball = ImprovedBall(paddlePosition, paddleY)
 
   self.top = sprite.new()
   self.top:moveTo(0, -10)
@@ -127,7 +87,7 @@ function GameScreen:AButtonUp()
     self.setState(GAME_STATE)
   elseif self.moving == false then
     self.moving = true
-    self.ball:setSpeed(speedX, speedY)
+    self.ball:setSpeed(2, -2)
   end
 end
 
@@ -135,7 +95,8 @@ function GameScreen:BButtonUp()
   self.moving = not self.moving
 
   if self.moving then
-    self.ball:setSpeed(speedX, speedY)
+    local x, y = self.paddle:getSpeed()
+    self.ball:setSpeed(2, -2)
   else
     self.ball:setSpeed(0, 0)
   end
@@ -172,36 +133,22 @@ end
 function GameScreen:reset()
   self.score = 0
   paddlePosition = initialPaddlePosition
-  paddleWidth = initialPaddleWidth
 
-  self.paddle:moveTo(paddlePosition, paddleY)
-  self.ball:moveTo(initialBallX, initialBallY)
+  self.paddle:moveBy(paddlePosition)
+  self.ball:moveTo(self.paddle.x, paddleY - ballRadius)
   self.moving = false
   self.playing = true
 end
 
 function GameScreen:draw()
   self.ball:tick()
-
-  local paddlex, _ = self.paddle:getPosition()
-
-  if paddlex == self.lastPaddlePosition then
-    self.paddleDirection = paddleDirectionStatic
-  end
+  self.paddle:tick()
 
   if self.playing == false then
     graphics.setColor(WHITE)
     graphics.fillRect(HALF_WIDTH - 80, HEIGHT - 30, 200, 30)
     font:drawTextAligned('Press A for new game', HALF_WIDTH - 70, HEIGHT - 20, 100, 30, LEFT)
   end
-
-  self.lastPaddlePosition = paddlex
-end
-
-function GameScreen:getNewSpeed(speed)
-  local fn = speedFunctions[self.paddleDirection]
-
-  return fn(speed)
 end
 
 function GameScreen:createPoints()
@@ -257,9 +204,9 @@ function GameScreen:cranked(_, accelerated)
     self.paddleDirection = paddleDirectionStatic
   end
 
-  if self.moving == false then
-    self.ball:moveTo(paddlePosition, paddleY - ballRadius)
-  end
+  self.paddle:moveBy(accelerated)
 
-  self.paddle:moveTo(paddlePosition, paddleY)
+  if self.moving == false then
+    self.ball:moveTo(self.paddle.x, paddleY - ballRadius)
+  end
 end

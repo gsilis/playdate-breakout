@@ -5,6 +5,7 @@ import 'sprites/improved-paddle'
 import 'sprites/improved-ball'
 import 'sprites/ball'
 import 'sprites/block'
+import 'sprites/game-over-dialog'
 
 class('GameScreen').extends(Screen)
 
@@ -26,15 +27,9 @@ local columnOffset = 16
 local columnWidth = 16
 local rowOffset = 32
 local rowHeight = 8
-local initialSpeedX = -4
-local initialSpeedY = -4
-local font = graphics.getFont(BOLD)
-local LEFT = kTextAlignment.left
 
 -- Variables used for drawing
 local paddlePosition = initialPaddlePosition
-local speedX = initialSpeedX
-local speedY = initialSpeedY
 local background = image.new('assets/background')
 
 function respondWithBounce()
@@ -51,7 +46,8 @@ function GameScreen:init(setState)
   self.playing = true
   self.moving = false
   self.paddle = ImprovedPaddle(paddlePosition, paddleY)
-  self.ball = ImprovedBall(paddlePosition, paddleY)
+  self.ball = ImprovedBall(paddlePosition, paddleY, self)
+  self.gameOverDialog = GameOverDialog()
 
   self.top = sprite.new()
   self.top:moveTo(0, -10)
@@ -74,7 +70,7 @@ function GameScreen:init(setState)
   self.bottom.name = 'BOTTOM'
 
   self.points = {}
-  self.score = 0
+  self.scored = 0
   self:createPoints()
 
   self.background = sprite.new()
@@ -95,8 +91,8 @@ function GameScreen:BButtonUp()
   self.moving = not self.moving
 
   if self.moving then
-    local x, y = self.paddle:getSpeed()
-    self.ball:setSpeed(2, -2)
+    local x, y = self.paddle:getSpeed(2, -2)
+    self.ball:setSpeed(x, y)
   else
     self.ball:setSpeed(0, 0)
   end
@@ -131,23 +127,21 @@ function GameScreen:pause()
 end
 
 function GameScreen:reset()
-  self.score = 0
+  self.scored = 0
   paddlePosition = initialPaddlePosition
 
+  self.gameOverDialog:remove()
   self.paddle:moveBy(paddlePosition)
   self.ball:moveTo(self.paddle.x, paddleY - ballRadius)
+  self.ball:setSpeed(0, 0)
   self.moving = false
   self.playing = true
 end
 
 function GameScreen:draw()
-  self.ball:tick()
-  self.paddle:tick()
-
-  if self.playing == false then
-    graphics.setColor(WHITE)
-    graphics.fillRect(HALF_WIDTH - 80, HEIGHT - 30, 200, 30)
-    font:drawTextAligned('Press A for new game', HALF_WIDTH - 70, HEIGHT - 20, 100, 30, LEFT)
+  if self.playing then
+    self.ball:tick()
+    self.paddle:tick()
   end
 end
 
@@ -167,13 +161,13 @@ end
 function GameScreen:hitBottom()
   self.ball:setSpeed(0, 0)
   self.playing = false
+  self.gameOverDialog:add()
 end
 
-function GameScreen:scorePoint(point)
-  point:remove()
-  self.score = self.score + 1
+function GameScreen:score()
+  self.scored = self.scored + 1
 
-  if self.score == #self.points then
+  if self.scored == #self.points then
     self.setState(GAME_WIN_STATE)
   end
 end

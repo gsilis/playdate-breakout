@@ -9,9 +9,10 @@ local ballImage = image.new('assets/ball')
 
 class('ImprovedBall').extends(sprite)
 
-function ImprovedBall:init(x, y)
+function ImprovedBall:init(x, y, screen)
   ImprovedBall.super.init(self)
 
+  self.screen = screen
   self.xspeed = 0
   self.yspeed = 0
 
@@ -65,6 +66,9 @@ function ImprovedBall:tick()
     end
 
     collider:remove()
+    self.screen:score()
+  elseif colliderName == 'BOTTOM' then
+    self.screen:hitBottom()
   end
 end
 
